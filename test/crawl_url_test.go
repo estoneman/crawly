@@ -1,8 +1,10 @@
 package main
 
 import (
-  "fmt"
+	"fmt"
 	"testing"
+
+	"github.com/estoneman/crawly/pkg/util"
 )
 
 func TestParseHtml(t *testing.T) {
@@ -92,7 +94,7 @@ func TestParseHtml(t *testing.T) {
 
 	for i, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			actual, err := getURLsFromHTML(tc.inputBody, tc.inputURL)
+			actual, err := util.GetURLsFromHTML(tc.inputBody, tc.inputURL)
 			if err != nil {
 				t.Errorf("Test %v - '%s' FAIL: unexpected error: %v", i, tc.name, err)
 				return
@@ -148,7 +150,7 @@ func TestNormalizeURL(t *testing.T) {
 
 	for i, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			actual, err := normalizeURL(tc.inputURL)
+			actual, err := util.NormalizeURL(tc.inputURL)
 			if err != nil {
 				t.Errorf("Test %v - '%s' FAIL: unexpected error: %v", i, tc.name, err)
 				return

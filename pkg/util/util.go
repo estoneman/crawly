@@ -1,4 +1,4 @@
-package main
+package util
 
 import (
 	"fmt"
@@ -11,9 +11,10 @@ import (
 	"golang.org/x/net/html"
 )
 
-type customURL url.URL // want to be able to do url.Print()
+type customURL url.URL // want to be able to do this: url.Print()
 
-func getURLsFromHTML(htmlBody, rawBaseUrl string) ([]string, error) {
+func GetURLsFromHTML(htmlBody, rawBaseUrl string) ([]string, error) {
+  fmt.Printf("starting crawl of: %s\n", rawBaseUrl)
 	// for prefixing plain webserver root filepaths
 	parsedURL, err := url.Parse(rawBaseUrl)
 	if err != nil {
@@ -69,7 +70,7 @@ func (url *customURL) print() {
 `, reflect.TypeOf(url), url.Scheme, url.Host, url.Path)
 }
 
-func normalizeURL(s string) (string, error) {
+func NormalizeURL(s string) (string, error) {
 	parsedUrl, err := url.Parse(s)
 	if err != nil {
 		log.Printf("%s not parseable, exiting: %v", s, err)

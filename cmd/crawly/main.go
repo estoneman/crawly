@@ -1,20 +1,45 @@
 package main
 
 import (
-  "fmt"
+	"fmt"
+  "os"
 
-  "github.com/estoneman/crawly/internal/http_client"
+	"github.com/estoneman/crawly/internal/http_util"
+	"github.com/estoneman/crawly/pkg/util"
 )
 
-func main() {
-	// s := `<p>Links:</p><ul><li><a href="foo">Foo</a><li><a href="/bar/baz">BarBaz</a></ul>`
-  // getURLsFromHTML(s, "https://google.com")
-  url := "https://google.com/"
-  body := http_client.HttpGet(url)
+func usage() {
+  fmt.Println("usage: crawler <base_url>")
+}
 
-  links, err := getURLsFromHTML(body, url)
+func main() {
+
+  args := os.Args[1:]
+  lenArgs := len(args)
+
+  if lenArgs == 0 {
+    fmt.Println("no website provided")
+    usage()
+
+    os.Exit(1)
+  } else if lenArgs > 1 {
+    fmt.Println("too many arguments provided")
+    usage()
+
+    os.Exit(1)
+  }
+
+  url := args[0]
+  body, err := http_util.HttpGet(url)
+  if err != nil {
+    fmt.Printf("error retrieving content of '%s': %v\n", url, err)
+    os.Exit(1)
+  }
+
+  links, err := util.GetURLsFromHTML(body, url)
   if err != nil {
     fmt.Printf("error getting URLs from %s\n", url)
+    os.Exit(1)
   }
 
   for _, link := range links {
