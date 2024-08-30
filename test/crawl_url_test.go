@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/estoneman/crawly/pkg/util"
@@ -100,7 +99,9 @@ func TestParseHtml(t *testing.T) {
 				return
 			}
 
-      fmt.Println(len(actual))
+      if len(actual) != len(tc.expected) {
+				  t.Errorf("Test %v - '%s' FAIL: found inaccurate no. URLs (%d != %d)", i, tc.name, len(actual), len(tc.expected))
+      }
       for i := 0; i < len(actual); i++ {
         if actual[i] != tc.expected[i] {
 				  t.Errorf("Test %v - '%s' FAIL: urls not equal (%s != %s)", i, tc.name, actual[i], tc.expected[i])

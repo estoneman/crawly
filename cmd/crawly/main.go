@@ -42,6 +42,7 @@ func main() {
     os.Exit(1)
   }
 
+  fmt.Printf("found %d URLs\n", len(links))
   for _, link := range links {
     fmt.Println(link)
   }
