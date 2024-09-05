@@ -1,20 +1,27 @@
 package util
 
 import (
-	"fmt"
+  "fmt"
 	"log"
 	"net/url"
-	"reflect"
+  "reflect"
 	"regexp"
 	"strings"
 
 	"golang.org/x/net/html"
+	"github.com/estoneman/crawly/pkg/types"
 )
 
-type customURL url.URL // want to be able to do this: url.Print()
+func (url *types.CustomURL) print() {
+	fmt.Printf(`%s {
+  Scheme: %s
+  Host: %s
+  Path: %s
+}
+`, reflect.TypeOf(url), url.Scheme, url.Host, url.Path)
+}
 
 func GetURLsFromHTML(htmlBody, rawBaseUrl string) ([]string, error) {
-  fmt.Printf("starting crawl of: %s\n", rawBaseUrl)
 	// for prefixing plain webserver root filepaths
 	parsedURL, err := url.Parse(rawBaseUrl)
 	if err != nil {
@@ -61,15 +68,6 @@ func GetURLsFromHTML(htmlBody, rawBaseUrl string) ([]string, error) {
 	return urls, nil
 }
 
-func (url *customURL) print() {
-	fmt.Printf(`%s {
-  Scheme: %s
-  Host: %s
-  Path: %s
-}
-`, reflect.TypeOf(url), url.Scheme, url.Host, url.Path)
-}
-
 func NormalizeURL(s string) (string, error) {
 	parsedUrl, err := url.Parse(s)
 	if err != nil {
@@ -77,7 +75,7 @@ func NormalizeURL(s string) (string, error) {
 		return "", err
 	}
 
-	customUrl := customURL(*parsedUrl)
+	customUrl := types.CustomURL(*parsedUrl)
 	normalized := customUrl.Host + customUrl.Path
 
 	if len(normalized) == 0 {
@@ -91,3 +89,14 @@ func NormalizeURL(s string) (string, error) {
 
 	return normalized, nil
 }
+
+func (cfg *types.Config) crawlPage(rawCurrentURL string) {
+  fmt.Println("implement me")
+}
+
+func (cfg *types.Config) addPageVisit(normalizedURL string) (isFirst bool) {
+  fmt.Println("implement me")
+
+  return false
+}
+
