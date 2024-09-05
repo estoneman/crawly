@@ -4,12 +4,14 @@ import (
   "fmt"
 	"log"
 	"net/url"
+  "os"
   "reflect"
 	"regexp"
 	"strings"
 
 	"golang.org/x/net/html"
 	"github.com/estoneman/crawly/pkg/types"
+	"github.com/estoneman/crawly/internal/http_util"
 )
 
 func (url *types.CustomURL) print() {
@@ -91,7 +93,41 @@ func NormalizeURL(s string) (string, error) {
 }
 
 func (cfg *types.Config) crawlPage(rawCurrentURL string) {
-  fmt.Println("implement me")
+  fmt.Fprintf(os.Stderr, "crawling: %s\n", rawCurrentURL)
+  // parse newly found URL
+  parsedRawCurrentURL, err := url.Parse(rawCurrentURL)
+  if err != nil {
+    fmt.Fprintf(os.Stderr, "unable to parse URL: %s\n", rawCurrentURL)
+    return
+  }
+
+  // don't crawl entire internet
+  if cfg.BaseURL.Host != parsedRawCurrentURL.Host {
+    return
+  }
+
+  // already seen it
+  if cfg.Pages[parsedRawCurrentURL.Host] > 0 {
+    cfg.Pages[parsedRawCurrentURL]++
+    return
+  }
+
+  cfg.Pages[parsedRawCurrentURL] = 1
+
+  body, err := http_util.HttpGet(rawCurrentURL)
+  if err != nil {
+    fmt.Fprintf(os.Stderr, "failed to fetch: %s\n", rawCurrentURL)
+  }
+
+  links, err := GetURLsFromHTML(body, rawCurrentURL)
+  if err != nil {
+    fmt.Fprintf(os.Stderr, "error occurred while searching for hrefs in body of %s\n", rawCurrentURL)
+    return
+  }
+
+  for _, link := range links {
+    cfg.crawlPage(link)
+  }
 }
 
 func (cfg *types.Config) addPageVisit(normalizedURL string) (isFirst bool) {
