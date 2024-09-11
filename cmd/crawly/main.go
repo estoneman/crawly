@@ -2,9 +2,11 @@ package main
 
 import (
 	"fmt"
-  "os"
+  "log"
+	"os"
+	"sync"
+  "net/url"
 
-	"github.com/estoneman/crawly/internal/http_util"
 	"github.com/estoneman/crawly/pkg/util"
 )
 
@@ -29,21 +31,27 @@ func main() {
     os.Exit(1)
   }
 
-  url := args[0]
-  body, err := http_util.HttpGet(url)
+  lookupUrl := args[0]
+  parsedLookupURL, err := url.Parse(lookupUrl)
   if err != nil {
-    fmt.Printf("error retrieving content of '%s': %v\n", url, err)
-    os.Exit(1)
+    log.Fatalf("failed to parse: %s: %v\n", lookupUrl, err)
   }
 
-  links, err := util.GetURLsFromHTML(body, url)
-  if err != nil {
-    fmt.Printf("error getting URLs from %s\n", url)
-    os.Exit(1)
+  // move to using Config.CrawlPage
+  cfg := util.Config{
+    Pages: make(map[string]int),
+    BaseURL: parsedLookupURL,
+    Mu: &sync.Mutex{},
+    ConcurrencyControl: make(chan struct{}, 20),
+    Wg: &sync.WaitGroup{},
   }
 
-  fmt.Printf("found %d URLs\n", len(links))
-  for _, link := range links {
-    fmt.Println(link)
+  cfg.CrawlPage(lookupUrl)
+
+  cfg.Wg.Wait()
+
+  fmt.Fprintf(os.Stderr, "\n=== REPORT (%d URLs found) ===\n", len(cfg.Pages))
+  for url, freq := range cfg.Pages {
+    fmt.Println(url, freq)
   }
 }
