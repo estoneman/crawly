@@ -1,2 +1,2 @@
 # crawly
-A web crawler written in Golang
+A concurrent web crawler written in Golang
