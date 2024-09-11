@@ -1,6 +1,7 @@
 package main
 
 import (
+  "flag"
 	"fmt"
   "log"
 	"os"
@@ -11,30 +12,33 @@ import (
 )
 
 func usage() {
-  fmt.Println("usage: crawler <base_url>")
+  fmt.Fprintf(os.Stderr, "crawler -url <base_url> [-k <number>]\n")
 }
 
 func main() {
 
-  args := os.Args[1:]
-  lenArgs := len(args)
+  lookupURL := flag.String("url", "", "Base URL")
+  maxLookups := flag.Int("k", 10, "Maximum number of concurrent lookups, cannot exceed 30")
 
-  if lenArgs == 0 {
-    fmt.Println("no website provided")
-    usage()
+  flag.Parse()
 
-    os.Exit(1)
-  } else if lenArgs > 1 {
-    fmt.Println("too many arguments provided")
+  if *lookupURL == "" {
+    fmt.Fprintln(os.Stderr, "You must provide a URL to crawl")
     usage()
 
     os.Exit(1)
   }
 
-  lookupUrl := args[0]
-  parsedLookupURL, err := url.Parse(lookupUrl)
+  if *maxLookups < 0 || *maxLookups > 30 {
+    fmt.Fprintln(os.Stderr, "Please provide a concurrency control value between 0 and 30")
+    usage()
+
+    os.Exit(1)
+  }
+
+  parsedLookupURL, err := url.Parse(*lookupURL)
   if err != nil {
-    log.Fatalf("failed to parse: %s: %v\n", lookupUrl, err)
+    log.Fatalf("failed to parse: %s: %v\n", *lookupURL, err)
   }
 
   // move to using Config.CrawlPage
@@ -42,11 +46,11 @@ func main() {
     Pages: make(map[string]int),
     BaseURL: parsedLookupURL,
     Mu: &sync.Mutex{},
-    ConcurrencyControl: make(chan struct{}, 20),
+    ConcurrencyControl: make(chan struct{}, *maxLookups),
     Wg: &sync.WaitGroup{},
   }
 
-  cfg.CrawlPage(lookupUrl)
+  cfg.CrawlPage(*lookupURL)
 
   cfg.Wg.Wait()
 
