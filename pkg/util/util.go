@@ -10,11 +10,10 @@ import (
 	"strings"
 
 	"golang.org/x/net/html"
-	"github.com/estoneman/crawly/pkg/types"
 	"github.com/estoneman/crawly/internal/http_util"
 )
 
-func (url *types.CustomURL) print() {
+func (url *CustomURL) print() {
 	fmt.Printf(`%s {
   Scheme: %s
   Host: %s
@@ -77,7 +76,7 @@ func NormalizeURL(s string) (string, error) {
 		return "", err
 	}
 
-	customUrl := types.CustomURL(*parsedUrl)
+	customUrl := CustomURL(*parsedUrl)
 	normalized := customUrl.Host + customUrl.Path
 
 	if len(normalized) == 0 {
@@ -92,47 +91,68 @@ func NormalizeURL(s string) (string, error) {
 	return normalized, nil
 }
 
-func (cfg *types.Config) crawlPage(rawCurrentURL string) {
+func (cfg *Config) CrawlPage(rawCurrentURL string) {
   fmt.Fprintf(os.Stderr, "crawling: %s\n", rawCurrentURL)
+
+  defer cfg.Wg.Done()
+  defer func() {
+    <- cfg.ConcurrencyControl
+  }()
+
   // parse newly found URL
   parsedRawCurrentURL, err := url.Parse(rawCurrentURL)
+
   if err != nil {
-    fmt.Fprintf(os.Stderr, "unable to parse URL: %s\n", rawCurrentURL)
+    fmt.Fprintf(os.Stderr, "unable to parse URL: %s: %v\n", rawCurrentURL, err)
     return
   }
 
   // don't crawl entire internet
   if cfg.BaseURL.Host != parsedRawCurrentURL.Host {
+    fmt.Fprintf(os.Stderr, "%s != %s, skipping..\n", cfg.BaseURL.Host, parsedRawCurrentURL.Host)
     return
   }
 
-  // already seen it
-  if cfg.Pages[parsedRawCurrentURL.Host] > 0 {
-    cfg.Pages[parsedRawCurrentURL]++
+  // normalize current url
+  normalizedRawCurrentUrl, err := NormalizeURL(rawCurrentURL)
+  if err != nil {
+    fmt.Fprintf(os.Stderr, "unable to normalize: %s: %v\n", rawCurrentURL, err)
     return
   }
 
-  cfg.Pages[parsedRawCurrentURL] = 1
+  // check if url has already been seen
+  cfg.Mu.Lock()
+  if ! cfg.addPageVisit(normalizedRawCurrentUrl) {
+    cfg.Mu.Unlock()
+
+    return
+  }
+  cfg.Mu.Unlock()
 
   body, err := http_util.HttpGet(rawCurrentURL)
   if err != nil {
-    fmt.Fprintf(os.Stderr, "failed to fetch: %s\n", rawCurrentURL)
+    fmt.Fprintf(os.Stderr, "failed to fetch: %s: %v\n", rawCurrentURL, err)
+    return
   }
 
   links, err := GetURLsFromHTML(body, rawCurrentURL)
   if err != nil {
-    fmt.Fprintf(os.Stderr, "error occurred while searching for hrefs in body of %s\n", rawCurrentURL)
+    fmt.Fprintf(os.Stderr, "error occurred while searching for hrefs in body of %s: %v\n", rawCurrentURL, err)
     return
   }
 
   for _, link := range links {
-    cfg.crawlPage(link)
+    cfg.Wg.Add(1)
+
+    go cfg.CrawlPage(link)
+
+    // send empty struct
+    cfg.ConcurrencyControl <- struct{}{}
   }
 }
 
-func (cfg *types.Config) addPageVisit(normalizedURL string) (isFirst bool) {
-  fmt.Println("implement me")
+func (cfg *Config) addPageVisit(normalizedURL string) (isFirst bool) {
+  cfg.Pages[normalizedURL] += 1
 
-  return false
+  return cfg.Pages[normalizedURL] == 1
 }
-
