@@ -99,6 +99,13 @@ func (cfg *Config) CrawlPage(rawCurrentURL string) {
 		<-cfg.ConcurrencyControl
 	}()
 
+	cfg.Mu.Lock()
+	if len(cfg.Pages) >= int(cfg.MaxPages) {
+		cfg.Mu.Unlock()
+		return
+	}
+	cfg.Mu.Unlock()
+
 	// parse newly found URL
 	parsedRawCurrentURL, err := url.Parse(rawCurrentURL)
 
