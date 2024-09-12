@@ -1,61 +1,67 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"log"
 	"net/url"
 	"os"
+	"strconv"
 	"sync"
 
 	"github.com/estoneman/crawly/pkg/util"
 )
 
 func usage() {
-	fmt.Fprintf(os.Stderr, "crawler -url <base_url> [-k <number>]\n")
+	fmt.Fprintln(os.Stderr, "Usage:\n\tcrawly <url> <max concurrent lookups> <max pages>")
 }
 
 func main() {
 
-	lookupURL := flag.String("url", "", "Base URL")
-	maxLookups := flag.Int("k", 10, "Maximum number of concurrent lookups, cannot exceed 30")
+	positionalArgs := os.Args[1:]
 
-	flag.Parse()
-
-	if *lookupURL == "" {
-		fmt.Fprintln(os.Stderr, "You must provide a URL to crawl")
+	if len(positionalArgs) < 3 {
+		fmt.Fprintln(os.Stderr, "not enough arguments supplied")
 		usage()
 
 		os.Exit(1)
 	}
 
-	if *maxLookups < 0 || *maxLookups > 30 {
-		fmt.Fprintln(os.Stderr, "Please provide a concurrency control value between 0 and 30")
-		usage()
+	lookupURL := positionalArgs[0]
 
-		os.Exit(1)
-	}
-
-	parsedLookupURL, err := url.Parse(*lookupURL)
+	maxLookups, err := strconv.ParseInt(positionalArgs[1], 10, 32)
 	if err != nil {
-		log.Fatalf("failed to parse: %s: %v\n", *lookupURL, err)
+		log.Fatalf("Failed to parse max concurrent lookups: %v\n", err)
 	}
 
-	// move to using Config.CrawlPage
+	maxPages, err := strconv.ParseInt(positionalArgs[2], 10, 32)
+	if err != nil {
+		log.Fatalf("Failed to parse max pages: %v\n", err)
+	}
+
+	if maxLookups < 0 || maxLookups > 30 {
+		fmt.Fprintln(os.Stderr, "Please provide a concurrency control value between 0 and 30\nUsage:")
+		usage()
+
+		os.Exit(1)
+	}
+
+	parsedLookupURL, err := url.Parse(lookupURL)
+	if err != nil {
+		log.Fatalf("failed to parse: %s: %v\n", lookupURL, err)
+	}
+
 	cfg := util.Config{
 		Pages:              make(map[string]int),
+		MaxPages:           maxPages,
 		BaseURL:            parsedLookupURL,
 		Mu:                 &sync.Mutex{},
-		ConcurrencyControl: make(chan struct{}, *maxLookups),
+		ConcurrencyControl: make(chan struct{}, maxLookups),
 		Wg:                 &sync.WaitGroup{},
 	}
 
-	cfg.CrawlPage(*lookupURL)
+	cfg.CrawlPage(lookupURL)
 
 	cfg.Wg.Wait()
 
-	fmt.Fprintf(os.Stderr, "\n=== REPORT (%d URLs found) ===\n", len(cfg.Pages))
-	for url, freq := range cfg.Pages {
-		fmt.Println(url, freq)
-	}
+	cfg.PrintReport(lookupURL)
 }
