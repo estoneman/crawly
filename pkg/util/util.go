@@ -1,16 +1,16 @@
 package util
 
 import (
-  "fmt"
+	"fmt"
 	"log"
 	"net/url"
-  "os"
-  "reflect"
+	"os"
+	"reflect"
 	"regexp"
 	"strings"
 
-	"golang.org/x/net/html"
 	"github.com/estoneman/crawly/internal/http_util"
+	"golang.org/x/net/html"
 )
 
 func (url *CustomURL) print() {
@@ -34,10 +34,10 @@ func GetURLsFromHTML(htmlBody, rawBaseUrl string) ([]string, error) {
 		log.Fatalf("unable to parse html: %v", err)
 	}
 
-  var urlFull string
+	var urlFull string
 	var schemeURLMatch (*regexp.Regexp)
 	var findURLs func(*html.Node)
-  var urls []string
+	var urls []string
 
 	findURLs = func(n *html.Node) {
 		if n.Type == html.ElementNode && n.Data == "a" {
@@ -48,11 +48,11 @@ func GetURLsFromHTML(htmlBody, rawBaseUrl string) ([]string, error) {
 					match := schemeURLMatch.MatchString(a.Val)
 
 					if !match {
-            urlFull = parsedURL.Scheme + "://" + parsedURL.Host + a.Val
-            urls = append(urls, urlFull)
+						urlFull = parsedURL.Scheme + "://" + parsedURL.Host + a.Val
+						urls = append(urls, urlFull)
 					} else {
-            urls = append(urls, a.Val)
-          }
+						urls = append(urls, a.Val)
+					}
 
 					break
 				}
@@ -92,67 +92,67 @@ func NormalizeURL(s string) (string, error) {
 }
 
 func (cfg *Config) CrawlPage(rawCurrentURL string) {
-  fmt.Fprintf(os.Stderr, "crawling: %s\n", rawCurrentURL)
+	fmt.Fprintf(os.Stderr, "crawling: %s\n", rawCurrentURL)
 
-  defer cfg.Wg.Done()
-  defer func() {
-    <- cfg.ConcurrencyControl
-  }()
+	defer cfg.Wg.Done()
+	defer func() {
+		<-cfg.ConcurrencyControl
+	}()
 
-  // parse newly found URL
-  parsedRawCurrentURL, err := url.Parse(rawCurrentURL)
+	// parse newly found URL
+	parsedRawCurrentURL, err := url.Parse(rawCurrentURL)
 
-  if err != nil {
-    fmt.Fprintf(os.Stderr, "unable to parse URL: %s: %v\n", rawCurrentURL, err)
-    return
-  }
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "unable to parse URL: %s: %v\n", rawCurrentURL, err)
+		return
+	}
 
-  // don't crawl entire internet
-  if cfg.BaseURL.Host != parsedRawCurrentURL.Host {
-    fmt.Fprintf(os.Stderr, "%s != %s, skipping..\n", cfg.BaseURL.Host, parsedRawCurrentURL.Host)
-    return
-  }
+	// don't crawl entire internet
+	if cfg.BaseURL.Host != parsedRawCurrentURL.Host {
+		fmt.Fprintf(os.Stderr, "%s != %s, skipping..\n", cfg.BaseURL.Host, parsedRawCurrentURL.Host)
+		return
+	}
 
-  // normalize current url
-  normalizedRawCurrentUrl, err := NormalizeURL(rawCurrentURL)
-  if err != nil {
-    fmt.Fprintf(os.Stderr, "unable to normalize: %s: %v\n", rawCurrentURL, err)
-    return
-  }
+	// normalize current url
+	normalizedRawCurrentUrl, err := NormalizeURL(rawCurrentURL)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "unable to normalize: %s: %v\n", rawCurrentURL, err)
+		return
+	}
 
-  // check if url has already been seen
-  cfg.Mu.Lock()
-  if ! cfg.addPageVisit(normalizedRawCurrentUrl) {
-    cfg.Mu.Unlock()
+	// check if url has already been seen
+	cfg.Mu.Lock()
+	if !cfg.addPageVisit(normalizedRawCurrentUrl) {
+		cfg.Mu.Unlock()
 
-    return
-  }
-  cfg.Mu.Unlock()
+		return
+	}
+	cfg.Mu.Unlock()
 
-  body, err := http_util.HttpGet(rawCurrentURL)
-  if err != nil {
-    fmt.Fprintf(os.Stderr, "failed to fetch: %s: %v\n", rawCurrentURL, err)
-    return
-  }
+	body, err := http_util.HttpGet(rawCurrentURL)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to fetch: %s: %v\n", rawCurrentURL, err)
+		return
+	}
 
-  links, err := GetURLsFromHTML(body, rawCurrentURL)
-  if err != nil {
-    fmt.Fprintf(os.Stderr, "error occurred while searching for hrefs in body of %s: %v\n", rawCurrentURL, err)
-    return
-  }
+	links, err := GetURLsFromHTML(body, rawCurrentURL)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error occurred while searching for hrefs in body of %s: %v\n", rawCurrentURL, err)
+		return
+	}
 
-  for _, link := range links {
-    cfg.Wg.Add(1)
+	for _, link := range links {
+		cfg.Wg.Add(1)
 
-    go cfg.CrawlPage(link)
+		go cfg.CrawlPage(link)
 
-    // send empty struct
-    cfg.ConcurrencyControl <- struct{}{}
-  }
+		// send empty struct
+		cfg.ConcurrencyControl <- struct{}{}
+	}
 }
 
 func (cfg *Config) addPageVisit(normalizedURL string) (isFirst bool) {
-  cfg.Pages[normalizedURL] += 1
+	cfg.Pages[normalizedURL] += 1
 
-  return cfg.Pages[normalizedURL] == 1
+	return cfg.Pages[normalizedURL] == 1
 }

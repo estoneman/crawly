@@ -9,13 +9,13 @@ import (
 func TestParseHtml(t *testing.T) {
 	tests := []struct {
 		name      string
-		inputURL string
+		inputURL  string
 		inputBody string
 		expected  []string
 	}{
 		{
-			name: "absolute and relative URLs",
-      inputURL: "https://blog.boot.dev",
+			name:     "absolute and relative URLs",
+			inputURL: "https://blog.boot.dev",
 			inputBody: `
       <html>
       <body>
@@ -30,9 +30,9 @@ func TestParseHtml(t *testing.T) {
       `,
 			expected: []string{"https://blog.boot.dev/path/one", "https://other.com/path/one"},
 		},
-    {
-			name: "absolute and relative URLs",
-      inputURL: "http://localhost:8000/",
+		{
+			name:     "absolute and relative URLs",
+			inputURL: "http://localhost:8000/",
 			inputBody: `
       <!DOCTYPE html>
 <html lang="en" data-layout="responsive" data-local="">
@@ -82,8 +82,8 @@ func TestParseHtml(t *testing.T) {
 </html>
 
       `,
-      expected: []string{"https://google.com", "https://nike.com", "https://zyn.com/metrics", "https://localhost:8000/metrics"},
-    },
+			expected: []string{"https://google.com", "https://nike.com", "https://zyn.com/metrics", "https://localhost:8000/metrics"},
+		},
 		{
 			name:      "empty",
 			inputBody: "",
@@ -99,14 +99,14 @@ func TestParseHtml(t *testing.T) {
 				return
 			}
 
-      if len(actual) != len(tc.expected) {
-				  t.Errorf("Test %v - '%s' FAIL: found inaccurate no. URLs (%d != %d)", i, tc.name, len(actual), len(tc.expected))
-      }
-      for i := 0; i < len(actual); i++ {
-        if actual[i] != tc.expected[i] {
-				  t.Errorf("Test %v - '%s' FAIL: urls not equal (%s != %s)", i, tc.name, actual[i], tc.expected[i])
-        }
-      }
+			if len(actual) != len(tc.expected) {
+				t.Errorf("Test %v - '%s' FAIL: found inaccurate no. URLs (%d != %d)", i, tc.name, len(actual), len(tc.expected))
+			}
+			for i := 0; i < len(actual); i++ {
+				if actual[i] != tc.expected[i] {
+					t.Errorf("Test %v - '%s' FAIL: urls not equal (%s != %s)", i, tc.name, actual[i], tc.expected[i])
+				}
+			}
 		})
 	}
 }

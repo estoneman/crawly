@@ -1,8 +1,8 @@
 package util
 
 import (
-  "net/url"
-  "sync"
+	"net/url"
+	"sync"
 )
 
 type CustomURL url.URL // want to be able to do this: url.Print()
