@@ -26,6 +26,11 @@ func (cfg *Config) PrintReport(baseURL string) {
 	)
 
 	for url, freq := range cfg.Pages {
+		if freq == 1 {
+			fmt.Printf("Found 1 internal link to %s\n", url)
+			continue
+		}
+
 		fmt.Printf("Found %d internal links to %s\n", freq, url)
 	}
 }
