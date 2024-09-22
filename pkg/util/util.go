@@ -92,8 +92,6 @@ func NormalizeURL(s string) (string, error) {
 }
 
 func (cfg *Config) CrawlPage(rawCurrentURL string) {
-	fmt.Fprintf(os.Stderr, "crawling: %s\n", rawCurrentURL)
-
 	defer cfg.Wg.Done()
 	defer func() {
 		<-cfg.ConcurrencyControl
@@ -116,7 +114,6 @@ func (cfg *Config) CrawlPage(rawCurrentURL string) {
 
 	// don't crawl entire internet
 	if cfg.BaseURL.Host != parsedRawCurrentURL.Host {
-		fmt.Fprintf(os.Stderr, "%s != %s, skipping..\n", cfg.BaseURL.Host, parsedRawCurrentURL.Host)
 		return
 	}
 
