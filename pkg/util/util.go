@@ -92,6 +92,7 @@ func NormalizeURL(s string) (string, error) {
 }
 
 func (cfg *Config) CrawlPage(rawCurrentURL string) {
+	cfg.Wg.Add(1)
 	defer cfg.Wg.Done()
 	defer func() {
 		<-cfg.ConcurrencyControl
@@ -146,8 +147,6 @@ func (cfg *Config) CrawlPage(rawCurrentURL string) {
 	}
 
 	for _, link := range links {
-		cfg.Wg.Add(1)
-
 		go cfg.CrawlPage(link)
 
 		// send empty struct
